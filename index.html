@@ -1550,7 +1550,12 @@ function begin(){
       new Promise(function(res){setTimeout(function(){res(null)},6000)})
     ]).catch(function(){return null}):Promise.resolve(null);
     live.then(function(d){
-      if(d&&d.people&&typeof d.people==='object'&&Object.keys(d.people).length){VIEW={people:d.people,about:d.about||VIEW.about}}
+      if(d&&d.people&&typeof d.people==='object'){
+        var pm=d.people;
+        /* accept both the data.json map and the normal JSON export (a list of people that carry their own id) */
+        if(Array.isArray(pm)){var tmp={};pm.forEach(function(x){if(x&&typeof x.id==='string'&&x.id)tmp[x.id]=x});pm=tmp}
+        if(Object.keys(pm).length){VIEW={people:pm,about:d.about||VIEW.about}}
+      }
     }).then(startView,startView);
     return;
   }
