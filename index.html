@@ -825,6 +825,13 @@ function exportJson(){
   var data=JSON.stringify({app:'family-tree',version:1,exportedAt:new Date().toISOString(),about:about,people:list},null,2);
   return saveFile('family-tree-'+today()+'.json',data).then(function(){xferMsg='تم تنزيل نسخة فيها '+num(list.length)+' اسم.'});
 }
+function exportData(){
+  if(!Object.keys(people).length){xferMsg='الشجرة فاضية.';return}
+  var data=JSON.stringify({app:'family-tree-view',exportedAt:new Date().toISOString(),people:people,about:about});
+  return saveFile('data.json',new Blob([data],{type:'application/json'})).then(function(){
+    xferMsg='تم تجهيز data.json. ارفعه على GitHub بجانب index.html وبيتحدث الموقع لحاله.';
+  });
+}
 function exportHtml(){
   if(!Object.keys(people).length){xferMsg='الشجرة فاضية.';return}
   if(!PRISTINE||!PRISTINE.js||!PRISTINE.css)throw {};
@@ -1473,7 +1480,8 @@ function renderXfer(){
   }else{
     h+='<div class="xsec"><h3>نسخة احتياطية (JSON)</h3><p class="hint">ملف فيه كل الأسماء والبطاقات ومعلومات العائلة. تقدر ترجّعه للشجرة بالاستيراد، أو تنقله لصفحة ثانية.</p><div class="acts"><button class="btn primary" type="button" data-xact="json"'+dis+'>تنزيل JSON</button>'+(canWrite?'<button class="btn" type="button" data-xact="pick"'+dis+'>استيراد من ملف</button>':'')+'</div></div>'
       +'<div class="xsec"><h3>للطباعة والمشاركة</h3>'+styleHtml()+scopeHtml()+'<p class="hint">كل الفروع بتطلع مفتوحة، بخلفية بيضاء'+(about.text?'، ونبذة العائلة بارزة في أول الصفحة.':'. ما في نبذة مكتوبة، أضفها من "عن العائلة" لتظهر بارزة.')+'</p><div class="acts"><button class="btn primary" type="button" data-xact="svg"'+dis+'>SVG حاد بأي تكبير (الأفضل)</button><button class="btn" type="button" data-xact="png"'+dis+'>صورة PNG</button><button class="btn" type="button" data-xact="pdf"'+dis+'>PDF مقسّم لصفحات A3</button><button class="btn" type="button" data-xact="pdf1"'+dis+'>PDF صفحة واحدة بدون تقطيع</button></div><p class="hint">للشجرة الكبيرة استخدم الـ SVG: بتفتحه بالمتصفح وبتكبّر لحد ما تقرأ أي اسم بوضوح. الصورة والـ PDF بصفحة واحدة بتصغّر الأسماء.</p></div>'
-      +'<div class="xsec"><h3>نسخة للمشاركة (HTML)</h3><p class="hint">ملف واحد بيتفتح بأي متصفح، للعرض فقط بدون إضافة أو حذف أو تعديل. لما حدا يضغط على اسم، بيلاقي زر يبعت رسالة واتساب لرقمك فيها الاسم الكامل، لطلب إضافة أبناء أو تعديل بيانات.</p><div class="acts"><button class="btn primary" type="button" data-xact="html"'+dis+'>تنزيل ملف HTML للعرض</button></div></div>';
+      +'<div class="xsec"><h3>نسخة للمشاركة (HTML)</h3><p class="hint">ملف واحد بيتفتح بأي متصفح، للعرض فقط بدون إضافة أو حذف أو تعديل. لما حدا يضغط على اسم، بيلاقي زر يبعت رسالة واتساب لرقمك فيها الاسم الكامل، لطلب إضافة أبناء أو تعديل بيانات.</p><div class="acts"><button class="btn primary" type="button" data-xact="html"'+dis+'>تنزيل ملف HTML للعرض</button></div></div>'
+      +'<div class="xsec"><h3>تحديث الأسماء فقط (data.json)</h3><p class="hint">بعد ما ترفع ملف HTML مرة وحدة على GitHub، لما تضيف أسماء أو تعدّل بيانات نزّل هالملف الصغير وارفعه بجانب index.html باسم data.json. الموقع بيقرأه تلقائياً، وما بتحتاج تبدّل الملف الأساسي.</p><div class="acts"><button class="btn" type="button" data-xact="data"'+dis+'>تنزيل data.json</button></div></div>';
   }
   h+='<p class="flash" role="status">'+esc(xferMsg)+(xferBusy&&!xferMsg?'جارٍ التجهيز…':'')+'</p></section>';
   xferEl.innerHTML=h;
@@ -1492,6 +1500,7 @@ xferEl.addEventListener('click',function(e){
   if(a==='json')runX(exportJson);
   else if(a==='png')runX(exportPng);
   else if(a==='html')runX(exportHtml);
+  else if(a==='data')runX(exportData);
   else if(a==='svg')runX(exportSvg);
   else if(a==='pdf')runX(exportPdf);
   else if(a==='pdf1')runX(exportPdfOne);
@@ -1533,7 +1542,18 @@ function startView(){
   loaded=true;panelKey='';emptyKey='';refresh();
 }
 function begin(){
-  if(VIEW){started=true;startView();return}
+  if(VIEW){
+    started=true;
+    /* a data.json sitting next to this page (same site) overrides the data baked into the file */
+    var live=(window.fetch&&/^https?:/.test(location.protocol))?Promise.race([
+      fetch('data.json?v='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.json():null}),
+      new Promise(function(res){setTimeout(function(){res(null)},6000)})
+    ]).catch(function(){return null}):Promise.resolve(null);
+    live.then(function(d){
+      if(d&&d.people&&typeof d.people==='object'&&Object.keys(d.people).length){VIEW={people:d.people,about:d.about||VIEW.about}}
+    }).then(startView,startView);
+    return;
+  }
   var use=(window.claude&&window.claude.use)?function(n){return window.claude.use(n)}:function(){return Promise.resolve(null)};
   var timer=setTimeout(function(){if(!started){started=true;startLocal()}},4000);
   use('db').then(function(db){
