@@ -1,7 +1,7 @@
 {
   "app": "family-tree",
   "version": 1,
-  "exportedAt": "2026-10-14T06:01:44.929Z",
+  "exportedAt": "2026-10-14T06:06:44.167Z",
   "about": {
     "title": "عائلة مرتجى الزعيم الشيخ",
     "origin": "من قرية اجديدة بالقرب من مكة المكرمة من قبيلة بني حرب",
@@ -6170,7 +6170,7 @@
     },
     {
       "id": "lmuz6d7gigvme",
-      "name": "فهمي",
+      "name": "فتحي",
       "parent": "lmuz65rala62h",
       "order": 1791442090242,
       "born": 0,
@@ -8564,6 +8564,17 @@
       "dead": false,
       "died": 0,
       "place": "فلسطين - غزة",
+      "bio": ""
+    },
+    {
+      "id": "t1trlrl7ghvwryw5vno3",
+      "name": "احمد",
+      "parent": "lmuz6dnfhm9fp",
+      "order": 1791957953971,
+      "born": 0,
+      "dead": false,
+      "died": 0,
+      "place": "",
       "bio": ""
     },
     {
